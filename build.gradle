@@ -21,6 +21,17 @@ jar {
     archiveClassifier.set('')
 }
 
+def env = [:]
+def envFile = rootProject.file(".env")
+if (envFile.exists()) {
+    envFile.eachLine { line ->
+        if (line && !line.startsWith("#") && line.contains("=")) {
+            def (key, value) = line.split("=", 2)
+            env[key.trim()] = value.trim()
+        }
+    }
+}
+
 repositories {
     mavenCentral()
 }
@@ -40,6 +51,24 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
 }
 
+publishing {
+    publications {
+        maven(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            name = 'GitHubPackages'
+            url = 'https://maven.pkg.github.com/first-ticket/common'
+            credentials {
+                username = env['GITHUB_USER']
+                password = env['GITHUB_TOKEN']
+            }
+        }
+    }
+}
+
 dependencyManagement {
     imports {
         mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
@@ -51,7 +80,6 @@ def querydslDir = layout.buildDirectory.dir("generated/querydsl").get().asFile
 sourceSets {
     main.java.srcDirs += [ querydslDir ]
 }
-
 
 tasks.withType(JavaCompile).configureEach {
     options.getGeneratedSourceOutputDirectory().set(querydslDir)
