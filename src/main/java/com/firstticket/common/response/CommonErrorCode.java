@@ -14,7 +14,14 @@ public enum CommonErrorCode implements ErrorCode {
     NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다"),
     METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "허용되지 않는 HTTP 메서드입니다"),
     CONFLICT(HttpStatus.CONFLICT, "이미 존재하는 리소스입니다"),
-    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다");
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다"),
+
+    // Feign Client 예외
+    FEIGN_BAD_REQUEST(HttpStatus.BAD_REQUEST, "외부 서비스 요청이 올바르지 않습니다"),
+    FEIGN_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "외부 서비스 인증에 실패했습니다"),
+    FEIGN_FORBIDDEN(HttpStatus.FORBIDDEN, "외부 서비스 접근 권한이 없습니다"),
+    FEIGN_NOT_FOUND(HttpStatus.NOT_FOUND, "외부 서비스 리소스를 찾을 수 없습니다"),
+    FEIGN_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "외부 서비스 오류가 발생했습니다");
 
     private final HttpStatus status;
     private final String message;
