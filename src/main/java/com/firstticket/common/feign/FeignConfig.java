@@ -26,9 +26,7 @@ public class FeignConfig {
     @Bean
     public RequestInterceptor requestInterceptor() {
         return requestTemplate -> {
-            ServletRequestAttributes attributes =
-                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (attributes != null) {
+            if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes) {
                 HttpServletRequest request = attributes.getRequest();
                 requestTemplate.header(HEADER_USER_ID, request.getHeader(HEADER_USER_ID));
                 requestTemplate.header(HEADER_USER_ROLE, request.getHeader(HEADER_USER_ROLE));
