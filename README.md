@@ -42,6 +42,7 @@ version = '0.0.2-SNAPSHOT'
 | 버전 | 변경 내용 |
 |------|-----------|
 | `0.0.1-SNAPSHOT` | • 공통 응답 구조 추가 (`ApiResponse`, `ErrorCode`, `SuccessCode`)<br>• 공통 예외 처리 추가 (`BusinessException`, `GlobalExceptionHandler`)<br>• JPA 기본 엔티티 및 설정 추가 (`BaseEntity`, `BaseUserEntity`, `JpaConfig`)<br>• 자동 설정 등록 (`CommonAutoConfiguration`) |
+| `0.0.2-SNAPSHOT` | • Feign 설정 추가 (`FeignConfig`, `FeignErrorDecoder`)<br>• PageableResolver 추가 (`CustomPageableResolver`, `WebConfig`) |
 
 ---
 
@@ -102,10 +103,16 @@ com.firstticket.common
 │   ├── SuccessCode.java             ← 성공 코드 interface
 │   ├── CommonErrorCode.java         ← 공통 에러 코드
 │   └── CommonSuccessCode.java       ← 공통 성공 코드
-└── jpa
-    ├── JpaConfig.java               ← EntityScan, JPAQueryFactory 설정
-    ├── BaseEntity.java              ← 생성/수정/삭제 시간
-    └── BaseUserEntity.java          ← BaseEntity + 생성/수정/삭제 유저
+├── jpa
+│   ├── JpaConfig.java               ← EntityScan, JPAQueryFactory 설정
+│   ├── BaseEntity.java              ← 생성/수정/삭제 시간
+│   └── BaseUserEntity.java          ← BaseEntity + 생성/수정/삭제 유저
+├── feign
+│   ├── FeignConfig.java             ← Feign 설정, 헤더 전파
+│   └── FeignErrorDecoder.java       ← Feign 에러 처리
+└── web
+    ├── WebConfig.java               ← PageableResolver 등록
+    └── CustomPageableResolver.java  ← 페이지 크기 강제
 ```
 
 ---
@@ -307,6 +314,79 @@ sample.delete(userId);  // deletedAt, deletedBy 자동 설정
     "message": "이미 취소된 샘플입니다",
     "timestamp": "2024-01-01T00:00:00"
 }
+```
+
+---
+
+## 🔗 Feign
+
+서비스 간 HTTP 통신을 위한 Feign 설정이 자동으로 적용됩니다.
+
+### FeignClient 사용
+
+```java
+// infrastructure/client/UserClient.java
+@FeignClient(name = "user-service")
+public interface UserClient {
+
+    @GetMapping("/users/{id}")
+    UserResponse getUser(@PathVariable UUID id);
+}
+```
+
+### 헤더 자동 전파
+
+모든 Feign 요청에 아래 헤더가 자동으로 전파됩니다.
+
+| 헤더 | 설명 |
+|------|------|
+| `X-User-Id` | 현재 요청한 유저 ID |
+| `X-User-Role` | 현재 요청한 유저 권한 |
+
+### Feign 에러 코드
+
+Feign 호출 실패 시 아래 에러 코드로 변환됩니다.
+
+| 코드 | HTTP 상태 | 메시지 |
+|------|-----------|--------|
+| `FEIGN_BAD_REQUEST` | 400 | 외부 서비스 요청이 올바르지 않습니다 |
+| `FEIGN_UNAUTHORIZED` | 401 | 외부 서비스 인증에 실패했습니다 |
+| `FEIGN_FORBIDDEN` | 403 | 외부 서비스 접근 권한이 없습니다 |
+| `FEIGN_NOT_FOUND` | 404 | 외부 서비스 리소스를 찾을 수 없습니다 |
+| `FEIGN_SERVER_ERROR` | 500 | 외부 서비스 오류가 발생했습니다 |
+
+---
+
+## 📄 CustomPageableResolver
+
+허용된 페이지 크기 외 요청 시 기본값으로 강제 적용됩니다.
+
+| 항목 | 값 |
+|------|-----|
+| 허용 페이지 크기 | 10, 30, 50 |
+| 기본 페이지 크기 | 10 |
+
+> ⚠️ `CustomPageableResolver`가 적용되려면 컨트롤러 파라미터에 `org.springframework.data.domain.Pageable`을 사용해야 합니다.
+
+```java
+import org.springframework.data.domain.Pageable;
+
+@GetMapping
+public ResponseEntity<ApiResponse<SampleListResponse>> getList(Pageable pageable) {
+    ...
+}
+```
+
+### 요청 방법
+
+```
+GET /samples?page=0&size=30&sort=createdAt
+```
+
+허용되지 않은 사이즈 요청 시 기본값 `10`으로 처리됩니다.
+
+```
+GET /samples?size=100  →  size=10 으로 강제 적용
 ```
 
 ---
