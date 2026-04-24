@@ -26,6 +26,10 @@ public class JsonUtil {
     }
 
     public static <T> T fromJson(String json, Class<T> type) {
+        if (json == null) {
+            return null;
+        }
+
         try {
             return objectMapper.readValue(json, type);
         } catch (JsonProcessingException e) {
@@ -35,6 +39,10 @@ public class JsonUtil {
     }
 
     public static <T> T fromJson(String json, TypeReference<T> typeReference) {
+        if (json == null) {
+            return null;
+        }
+
         try {
             return objectMapper.readValue(json, typeReference);
         } catch (JsonProcessingException e) {
