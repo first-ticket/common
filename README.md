@@ -42,7 +42,7 @@ version = '0.0.2-SNAPSHOT'
 | 버전 | 변경 내용 |
 |------|-----------|
 | `0.0.1-SNAPSHOT` | • 공통 응답 구조 추가 (`ApiResponse`, `ErrorCode`, `SuccessCode`)<br>• 공통 예외 처리 추가 (`BusinessException`, `GlobalExceptionHandler`)<br>• JPA 기본 엔티티 및 설정 추가 (`BaseEntity`, `BaseUserEntity`, `JpaConfig`)<br>• 자동 설정 등록 (`CommonAutoConfiguration`) |
-| `0.0.2-SNAPSHOT` | • Feign 설정 추가 (`FeignConfig`, `FeignErrorDecoder`)<br>• PageableResolver 추가 (`CustomPageableResolver`, `WebConfig`) |
+| `0.0.2-SNAPSHOT` | • Feign 설정 추가 (`FeignConfig`, `FeignErrorDecoder`)<br>• PageableResolver 추가 (`CustomPageableResolver`, `WebConfig`)<br>• `JsonUtil` 추가 (JSON 직렬화/역직렬화 정적 유틸)<br>• `ObjectMapper` 빈 등록 (`JavaTimeModule`, `FAIL_ON_UNKNOWN_PROPERTIES` 설정) |
 
 ---
 
@@ -110,9 +110,12 @@ com.firstticket.common
 ├── feign
 │   ├── FeignConfig.java             ← Feign 설정, 헤더 전파
 │   └── FeignErrorDecoder.java       ← Feign 에러 처리
-└── web
-    ├── WebConfig.java               ← PageableResolver 등록
-    └── CustomPageableResolver.java  ← 페이지 크기 강제
+├── web
+│   ├── WebConfig.java               ← PageableResolver 등록
+│   └── CustomPageableResolver.java  ← 페이지 크기 강제
+└── json
+    ├── JsonConfig.java              ← ObjectMapper 빈 등록
+    └── JsonUtil.java                ← JSON 직렬화/역직렬화 정적 유틸
 ```
 
 ---
@@ -388,6 +391,35 @@ GET /samples?page=0&size=30&sort=createdAt
 ```
 GET /samples?size=100  →  size=10 으로 강제 적용
 ```
+
+---
+
+## 🔧 JsonUtil
+
+JSON 직렬화/역직렬화를 정적 메서드로 제공합니다.  
+`ObjectMapper` 빈이 자동으로 주입되므로 별도 설정 없이 바로 사용할 수 있습니다.
+
+```java
+// 직렬화
+String json = JsonUtil.toJson(sampleDto);
+
+// 역직렬화
+SampleDto dto = JsonUtil.fromJson(json, SampleDto.class);
+
+// 제네릭 타입 역직렬화
+List<SampleDto> list = JsonUtil.fromJson(json, new TypeReference<List<SampleDto>>() {});
+```
+
+직렬화/역직렬화 실패 시 예외를 던지지 않고 `null`을 반환합니다.  
+호출하는 쪽에서 null 체크가 필요합니다.
+
+### ObjectMapper 설정
+
+| 설정 | 값 | 설명                                                     |
+|------|-----|--------------------------------------------------------|
+| `JavaTimeModule` | 등록 | `LocalDateTime`, `Instant` 등 Java 8 날짜/시간 타입 지원        |
+| `WRITE_DATES_AS_TIMESTAMPS` | false | 날짜를 ISO-8601 문자열로 직렬화                                  |
+| `FAIL_ON_UNKNOWN_PROPERTIES` | false | 알 수 없는 필드 무시 (Feign, Kafka 통신 시 필요한 필드만 선택적으로 받을 수 있음) |
 
 ---
 
