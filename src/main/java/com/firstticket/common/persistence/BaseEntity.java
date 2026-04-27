@@ -11,6 +11,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Getter
 @MappedSuperclass
@@ -28,4 +29,12 @@ public abstract class BaseEntity {
 
     @Column(name = "deleted_at")
     protected LocalDateTime deletedAt;
+
+    protected void delete() {
+        if (this.deletedAt != null) {
+            return;
+        }
+
+        this.deletedAt = LocalDateTime.now();
+    }
 }
