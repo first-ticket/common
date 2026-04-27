@@ -18,7 +18,7 @@ public record ApiResponse<T>(
     }
 
     public ApiResponse(ErrorCode errorCode) {
-        this(true, errorCode.getName(), errorCode.getMessage(), LocalDateTime.now(), null);
+        this(false, errorCode.getName(), errorCode.getMessage(), LocalDateTime.now(), null);
     }
 
     public static <T> ResponseEntity<ApiResponse<T>> success(SuccessCode successCode, T data) {
@@ -26,12 +26,12 @@ public record ApiResponse<T>(
                 .body(new ApiResponse<>(successCode, data));
     }
 
-    public static <T> ResponseEntity<ApiResponse<Void>> success(SuccessCode successCode) {
+    public static ResponseEntity<ApiResponse<Void>> success(SuccessCode successCode) {
         return ResponseEntity.status(successCode.getStatus())
                 .body(new ApiResponse<>(successCode, null));
     }
 
-    public static <T> ResponseEntity<ApiResponse<Void>> error(ErrorCode errorCode) {
+    public static ResponseEntity<ApiResponse<Void>> error(ErrorCode errorCode) {
         return ResponseEntity.status(errorCode.getStatus())
                 .body(new ApiResponse<>(errorCode));
     }
