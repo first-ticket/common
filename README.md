@@ -39,10 +39,10 @@ version = '0.0.2-SNAPSHOT'
 
 ## 📝 버전
 
-| 버전 | 변경 내용 |
-|------|-----------|
-| `0.0.1-SNAPSHOT` | • 공통 응답 구조 추가 (`ApiResponse`, `ErrorCode`, `SuccessCode`)<br>• 공통 예외 처리 추가 (`BusinessException`, `GlobalExceptionHandler`)<br>• JPA 기본 엔티티 및 설정 추가 (`BaseEntity`, `BaseUserEntity`, `JpaConfig`)<br>• 자동 설정 등록 (`CommonAutoConfiguration`) |
-| `0.0.2-SNAPSHOT` | • Feign 설정 추가 (`FeignConfig`, `FeignErrorDecoder`)<br>• PageableResolver 추가 (`CustomPageableResolver`, `WebConfig`)<br>• `JsonUtil` 추가 (JSON 직렬화/역직렬화 정적 유틸)<br>• `ObjectMapper` 빈 등록 (`JavaTimeModule`, `FAIL_ON_UNKNOWN_PROPERTIES` 설정) |
+| 버전 | 변경 내용                                                                                                                                                                                                                                                                                                                                  |
+|------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `0.0.1-SNAPSHOT` | • 공통 응답 구조 추가 (`ApiResponse`, `ErrorCode`, `SuccessCode`)<br>• 공통 예외 처리 추가 (`BusinessException`, `GlobalExceptionHandler`)<br>• JPA 기본 엔티티 및 설정 추가 (`BaseEntity`, `BaseUserEntity`, `JpaConfig`)<br>• 자동 설정 등록 (`CommonAutoConfiguration`)                                                                                             |
+| `0.0.2-SNAPSHOT` | • Feign 설정 추가 (`FeignConfig`, `FeignErrorDecoder`)<br>• PageableResolver 추가 (`CustomPageableResolver`, `WebConfig`)<br>• `JsonUtil` 추가 (JSON 직렬화/역직렬화 정적 유틸)<br>• `ObjectMapper` 빈 등록 (`JavaTimeModule`, `FAIL_ON_UNKNOWN_PROPERTIES` 설정) <br> •`SecurityAuditorAware`추가 - JPA Auditing `createdBy` / `updatedBy` 자동 주입 (X-User-Id 기반) |
 
 ---
 
@@ -103,10 +103,11 @@ com.firstticket.common
 │   ├── SuccessCode.java             ← 성공 코드 interface
 │   ├── CommonErrorCode.java         ← 공통 에러 코드
 │   └── CommonSuccessCode.java       ← 공통 성공 코드
-├── jpa
+├── persistence
 │   ├── JpaConfig.java               ← EntityScan, JPAQueryFactory 설정
 │   ├── BaseEntity.java              ← 생성/수정/삭제 시간
-│   └── BaseUserEntity.java          ← BaseEntity + 생성/수정/삭제 유저
+│   ├── BaseUserEntity.java          ← BaseEntity + 생성/수정/삭제 유저
+│   └── SecurityAuditorAware.java    ← X-User-Id 헤더 기반 JPA Auditor
 ├── feign
 │   ├── FeignConfig.java             ← Feign 설정, 헤더 전파
 │   └── FeignErrorDecoder.java       ← Feign 에러 처리
@@ -288,6 +289,16 @@ public class Sample extends BaseUserEntity {
 // 외부에서 바로 호출 — BaseUserEntity.delete() 동작
 sample.delete(userId);  // deletedAt, deletedBy 자동 설정
 ```
+
+### SecurityAuditorAware
+
+`createdBy` / `updatedBy`는 `SecurityAuditorAware`가 자동으로 채워줍니다.
+
+| 동작 조건 | 결과 |
+  |---|---|
+| API Gateway가 `X-User-Id` 헤더 주입 | `createdBy` / `updatedBy`에 해당 UUID 자동 기록 |
+| 헤더 없음 (내부 호출, Flyway 등) | `null` 유지 (예외 발생하지 않음) |
+| 헤더 값이 UUID 형식이 아닌 경우 | `null` 유지 + warn 로그 출력 |
 
 ---
 
