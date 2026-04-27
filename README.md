@@ -1,6 +1,6 @@
 # com.first-ticket.common
 
-공통 예외 처리, 응답 형식, JPA 기본 엔티티를 제공하는 공통 모듈입니다.
+공통 예외 처리, 응답 형식, Feign/Web/JSON 설정을 제공하는 공통 모듈입니다.
 
 ---
 
@@ -43,6 +43,7 @@ version = '0.0.2-SNAPSHOT'
 |------|-----------|
 | `0.0.1-SNAPSHOT` | • 공통 응답 구조 추가 (`ApiResponse`, `ErrorCode`, `SuccessCode`)<br>• 공통 예외 처리 추가 (`BusinessException`, `GlobalExceptionHandler`)<br>• JPA 기본 엔티티 및 설정 추가 (`BaseEntity`, `BaseUserEntity`, `JpaConfig`)<br>• 자동 설정 등록 (`CommonAutoConfiguration`) |
 | `0.0.2-SNAPSHOT` | • Feign 설정 추가 (`FeignConfig`, `FeignErrorDecoder`)<br>• PageableResolver 추가 (`CustomPageableResolver`, `WebConfig`)<br>• `JsonUtil` 추가 (JSON 직렬화/역직렬화 정적 유틸)<br>• `ObjectMapper` 빈 등록 (`JavaTimeModule`, `FAIL_ON_UNKNOWN_PROPERTIES` 설정) |
+| `0.0.3-SNAPSHOT` | • JPA 관련 코드 제거 (`BaseEntity`, `BaseUserEntity`, `JpaConfig`) → `common-jpa`로 분리 |
 
 ---
 
@@ -76,7 +77,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.first-ticket:common:0.0.1-SNAPSHOT'
+    implementation 'com.first-ticket:common:0.0.3-SNAPSHOT'
 }
 ```
 
@@ -103,10 +104,6 @@ com.firstticket.common
 │   ├── SuccessCode.java             ← 성공 코드 interface
 │   ├── CommonErrorCode.java         ← 공통 에러 코드
 │   └── CommonSuccessCode.java       ← 공통 성공 코드
-├── jpa
-│   ├── JpaConfig.java               ← EntityScan, JPAQueryFactory 설정
-│   ├── BaseEntity.java              ← 생성/수정/삭제 시간
-│   └── BaseUserEntity.java          ← BaseEntity + 생성/수정/삭제 유저
 ├── feign
 │   ├── FeignConfig.java             ← Feign 설정, 헤더 전파
 │   └── FeignErrorDecoder.java       ← Feign 에러 처리
@@ -206,87 +203,6 @@ public class SampleController {
         return ApiResponse.success(SampleSuccessCode.SAMPLE_DELETED);
     }
 }
-```
-
----
-
-## 🗄️ JpaConfig
-
-`com.firstticket` 하위 패키지를 자동으로 스캔하여 JPA 엔티티와 Repository를 등록합니다.
-`JPAQueryFactory` 빈을 자동으로 등록하여 QueryDSL을 바로 사용할 수 있습니다.
-
-> ⚠️ 모든 서비스의 베이스 패키지가 `com.firstticket`으로 시작해야 합니다.
-
-```java
-// 서비스 엔티티 자동 스캔됨
-package com.firstticket.sampleservice.domain;
-
-@Entity
-public class Sample extends BaseEntity { ... }
-```
-
-QueryDSL 사용 시 `JPAQueryFactory`를 주입받아 바로 사용합니다.
-
-```java
-@Repository
-@RequiredArgsConstructor
-public class SampleQueryRepositoryImpl implements SampleQueryRepository {
-
-    private final JPAQueryFactory queryFactory;
-
-    @Override
-    public List<Sample> findBySpec(SampleSearchSpec spec) {
-        return queryFactory
-            .selectFrom(sample)
-            .where(...)
-            .fetch();
-    }
-}
-```
-
----
-
-## 🏗️ BaseEntity / BaseUserEntity
-
-### BaseEntity
-
-생성 시간, 수정 시간, 삭제 시간을 자동으로 관리합니다.
-
-| 필드 | 타입 | 설명 |
-|------|------|------|
-| `createdAt` | `LocalDateTime` | 생성 시간 (자동) |
-| `updatedAt` | `LocalDateTime` | 수정 시간 (자동, insert 시 null) |
-| `deletedAt` | `LocalDateTime` | 삭제 시간 |
-
-```java
-@Entity
-public class Sample extends BaseEntity {
-    // createdAt, updatedAt, deletedAt 자동 포함
-}
-```
-
-### BaseUserEntity
-
-`BaseEntity`를 상속받아 생성/수정/삭제 유저 UUID를 추가로 관리합니다.
-
-| 필드 | 타입 | 설명 |
-|------|------|------|
-| `createdBy` | `UUID` | 생성 유저 (자동) |
-| `updatedBy` | `UUID` | 수정 유저 (자동, insert 시 null) |
-| `deletedBy` | `UUID` | 삭제 유저 |
-
-```java
-@Entity
-public class Sample extends BaseUserEntity {
-    // createdAt, updatedAt, deletedAt, createdBy, updatedBy, deletedBy 자동 포함
-}
-```
-
-소프트 삭제가 필요한 경우 `delete()` 메서드를 호출합니다.
-
-```java
-// 외부에서 바로 호출 — BaseUserEntity.delete() 동작
-sample.delete(userId);  // deletedAt, deletedBy 자동 설정
 ```
 
 ---
