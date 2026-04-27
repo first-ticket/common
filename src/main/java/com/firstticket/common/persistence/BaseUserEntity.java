@@ -35,7 +35,7 @@ public abstract class BaseUserEntity extends BaseEntity {
             return;
         }
 
-        this.deletedAt = LocalDateTime.now();
+        super.delete();
         this.deletedBy = deletedBy;
     }
 }
