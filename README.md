@@ -39,11 +39,12 @@ version = '0.0.2-SNAPSHOT'
 
 ## 📝 버전
 
-| 버전 | 변경 내용 |
-|------|-----------|
+| 버전               | 변경 내용                                                                                                                                                                                                                                     |
+|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `0.0.1-SNAPSHOT` | • 공통 응답 구조 추가 (`ApiResponse`, `ErrorCode`, `SuccessCode`)<br>• 공통 예외 처리 추가 (`BusinessException`, `GlobalExceptionHandler`)<br>• JPA 기본 엔티티 및 설정 추가 (`BaseEntity`, `BaseUserEntity`, `JpaConfig`)<br>• 자동 설정 등록 (`CommonAutoConfiguration`) |
 | `0.0.2-SNAPSHOT` | • Feign 설정 추가 (`FeignConfig`, `FeignErrorDecoder`)<br>• PageableResolver 추가 (`CustomPageableResolver`, `WebConfig`)<br>• `JsonUtil` 추가 (JSON 직렬화/역직렬화 정적 유틸)<br>• `ObjectMapper` 빈 등록 (`JavaTimeModule`, `FAIL_ON_UNKNOWN_PROPERTIES` 설정) |
-| `0.0.3-SNAPSHOT` | • JPA 관련 코드 제거 (`BaseEntity`, `BaseUserEntity`, `JpaConfig`) → `common-jpa`로 분리 |
+| `0.0.3-SNAPSHOT` | • JPA 관련 코드 제거 (`BaseEntity`, `BaseUserEntity`, `JpaConfig`) → `common-jpa`로 분리|
+| `0.0.4-SNAPSHOT` | • `AuthContext` 추가 (Gateway 주입 헤더에서 인증 사용자 정보를 정적 메서드로 추출) |
 
 ---
 
@@ -108,8 +109,9 @@ com.firstticket.common
 │   ├── FeignConfig.java             ← Feign 설정, 헤더 전파
 │   └── FeignErrorDecoder.java       ← Feign 에러 처리
 ├── web
-│   ├── WebConfig.java               ← PageableResolver 등록
-│   └── CustomPageableResolver.java  ← 페이지 크기 강제
+│   ├── WebConfig.java                ← CustomPageableResolver 등록
+│   ├── CustomPageableResolver.java   ← 페이지 크기 강제
+│   └── AuthContext.java              ← Gateway 주입 헤더 → 정적 메서드로 추출
 └── json
     ├── JsonConfig.java              ← ObjectMapper 빈 등록
     └── JsonUtil.java                ← JSON 직렬화/역직렬화 정적 유틸
@@ -336,6 +338,44 @@ List<SampleDto> list = JsonUtil.fromJson(json, new TypeReference<List<SampleDto>
 | `JavaTimeModule` | 등록 | `LocalDateTime`, `Instant` 등 Java 8 날짜/시간 타입 지원        |
 | `WRITE_DATES_AS_TIMESTAMPS` | false | 날짜를 ISO-8601 문자열로 직렬화                                  |
 | `FAIL_ON_UNKNOWN_PROPERTIES` | false | 알 수 없는 필드 무시 (Feign, Kafka 통신 시 필요한 필드만 선택적으로 받을 수 있음) |
+
+
+## 🔐 AuthContext
+
+Gateway가 주입한 `X-User-Id`, `X-User-Role` 헤더를 정적 메서드로 추출합니다.  
+컨트롤러 파라미터 선언 없이 필요한 시점에 어디서든 호출 가능합니다.
+
+### 사용 방법
+
+```java
+UUID   userId = AuthContext.getUserId(); // X-User-Id → UUID
+String role   = AuthContext.getRole();   // X-User-Role → String
+```
+
+### 동작 규칙
+
+| 헤더 | 필수 여부 | 누락 시 |
+|------|-----------|---------|
+| `X-User-Id`   | 필수 | `UNAUTHORIZED (401)` |
+| `X-User-Role` | 필수 | `UNAUTHORIZED (401)` |
+
+### 역할 enum 변환
+
+`role`은 `String`으로 제공됩니다. 서비스에서 필요한 경우 직접 변환합니다.
+
+```java
+if (AuthContext.getRole() != null) {
+    UserRole role = UserRole.valueOf(AuthContext.getRole());
+}
+```
+
+> `common` 모듈은 도메인을 모르므로 `UserRole` enum을 포함하지 않습니다.  
+> 타입 변환은 각 서비스의 책임입니다.
+
+### 주의 사항
+
+- HTTP 요청 컨텍스트 안에서만 동작합니다.
+- `@Async`, Kafka 컨슈머, 스케줄러 등 요청 범위 밖에서는 사용할 수 없습니다.
 
 ---
 
