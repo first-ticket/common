@@ -50,11 +50,21 @@ public class UserContextArgumentResolver implements HandlerMethodArgumentResolve
             throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         }
 
-        // 2. String -> UUID 변환
-        UUID userId = UUID.fromString(userIdHeader);
+        // 2. String → UUID 변환
+        // 형식이 잘못된 경우(Gateway 오동작 또는 우회 요청)도 UNAUTHORIZED로 처리
+        // IllegalArgumentException을 그대로 두면 GlobalExceptionHandler가 500으로 매핑하므로 명시적으로 잡음
+        UUID userId;
 
-        // 3. X-User-Role 헤더 추출 - 선택값, nullable
-        String role = webRequest.getHeader(HEADER_USER_ROLE);
+        try {
+            userId = UUID.fromString(userIdHeader.trim());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+        }
+
+        // 3. X-User-Role 헤더 추출 — 선택값
+        // 빈 문자열("")도 null로 정규화
+        String roleHeader = webRequest.getHeader(HEADER_USER_ROLE);
+        String role = (roleHeader == null || roleHeader.isBlank()) ? null : roleHeader;
 
         return new UserContext(userId, role);
     }

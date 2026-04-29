@@ -39,12 +39,12 @@ version = '0.0.2-SNAPSHOT'
 
 ## 📝 버전
 
-| 버전               | 변경 내용                                                                                                                                                                                                                                      |
-|------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 버전               | 변경 내용                                                                                                                                                                                                                                     |
+|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `0.0.1-SNAPSHOT` | • 공통 응답 구조 추가 (`ApiResponse`, `ErrorCode`, `SuccessCode`)<br>• 공통 예외 처리 추가 (`BusinessException`, `GlobalExceptionHandler`)<br>• JPA 기본 엔티티 및 설정 추가 (`BaseEntity`, `BaseUserEntity`, `JpaConfig`)<br>• 자동 설정 등록 (`CommonAutoConfiguration`) |
-| `0.0.2-SNAPSHOT` | • Feign 설정 추가 (`FeignConfig`, `FeignErrorDecoder`)<br>• PageableResolver 추가 (`CustomPageableResolver`, `WebConfig`)<br>• `JsonUtil` 추가 (JSON 직렬화/역직렬화 정적 유틸)<br>• `ObjectMapper` 빈 등록 (`JavaTimeModule`, `FAIL_ON_UNKNOWN_PROPERTIES` 설정)  |
-| `0.0.3-SNAPSHOT` | • JPA 관련 코드 제거 (`BaseEntity`, `BaseUserEntity`, `JpaConfig`) → `common-jpa`로 분리                                                                                                                                                            |
-| `0.0.4-SNAPSHOT` | • `UserContext` 추가 (Gateway 주입 헤더 -> 인증 사용자 정보 DTO)<br> • `UserContextArgumentResolver` 추가 (컨트롤러 파라미터 자동 주입) |                                                                                                                              |
+| `0.0.2-SNAPSHOT` | • Feign 설정 추가 (`FeignConfig`, `FeignErrorDecoder`)<br>• PageableResolver 추가 (`CustomPageableResolver`, `WebConfig`)<br>• `JsonUtil` 추가 (JSON 직렬화/역직렬화 정적 유틸)<br>• `ObjectMapper` 빈 등록 (`JavaTimeModule`, `FAIL_ON_UNKNOWN_PROPERTIES` 설정) |
+| `0.0.3-SNAPSHOT` | • JPA 관련 코드 제거 (`BaseEntity`, `BaseUserEntity`, `JpaConfig`) → `common-jpa`로 분리|
+| `0.0.4-SNAPSHOT` | • `UserContext` 추가 (Gateway 주입 헤더 -> 인증 사용자 정보 DTO)<br> • `UserContextArgumentResolver` 추가 (컨트롤러 파라미터 자동 주입) |
 
 ---
 
@@ -109,7 +109,7 @@ com.firstticket.common
 │   ├── FeignConfig.java             ← Feign 설정, 헤더 전파
 │   └── FeignErrorDecoder.java       ← Feign 에러 처리
 ├── web
-│   ├── WebConfig.java                    ← PageableResolver, UserContextResolver 등록
+│   ├── WebConfig.java                    ← PageableResolver, UserContextArgumentResolver 등록
 │   ├── CustomPageableResolver.java       ← 페이지 크기 강제
 │   ├── UserContext.java                  ← 인증 사용자 정보 DTO
 │   └── UserContextArgumentResolver.java  ← Gateway 헤더 → UserContext 변환
@@ -368,7 +368,9 @@ Gateway가 주입한 `X-User-Id`, `X-User-Role` 헤더를 컨트롤러 파라미
 `role`은 `String`으로 제공됩니다. 서비스에서 필요한 경우 직접 변환합니다.
 
   ```java
-  UserRole role = UserRole.valueOf(userContext.role());
+  if (userContext.role() != null) {
+    UserRole role = UserRole.valueOf(userContext.role());
+    }
   ```
 
 > `common` 모듈은 도메인을 모르므로 `UserRole` enum을 포함하지 않습니다.
