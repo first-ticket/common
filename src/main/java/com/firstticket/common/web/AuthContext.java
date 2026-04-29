@@ -49,15 +49,26 @@ public final class AuthContext {
     }
 
     /**
-     * 현재 요청의 인증 사용자 역할(role)을 String으로 반환
-     * 각 서비스에서 필요 시 UserRole.valueOf()로 변환하여 사용
+     * 현재 요청의 인증 사용자 역할을 UserRole enum으로 반환
      *
-     * @throws BusinessException UNAUTHORIZED(401) — 헤더 누락
+     * 설계 결정 사항
+     * - 반환 타입을 String이 아닌 UserRole로 선택한 이유:
+     *   1. 각 서비스에서 UserRole.valueOf() 변환 코드를 반복 작성할 필요 없음
+     *   2. 정의되지 않은 role 값에 대한 예외 처리를 이 한 곳에서 통일
+     *   3. 호출 측에서 오타가 컴파일 오류로 즉시 감지됨 (타입 안전성)
+     *
+     * @throws BusinessException UNAUTHORIZED(401) — 헤더 누락 또는 정의되지 않은 역할 값
      */
-    public static String getRole() {
-        return getRequiredHeader(HEADER_USER_ROLE);
+    public static UserRole getRole() {
+        String roleStr = getRequiredHeader(HEADER_USER_ROLE);
+        try {
+            // "ADMIN" → UserRole.ADMIN 변환
+            // Gateway 계약 위반(정의되지 않은 role)은 UNAUTHORIZED로 통일 처리
+            return UserRole.valueOf(roleStr);
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+        }
     }
-
     /**
      * 필수 헤더 추출 공통 메서드
      * 누락 또는 빈 값이면 UNAUTHORIZED 예외 발생
