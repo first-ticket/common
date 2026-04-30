@@ -92,4 +92,21 @@ public final class AuthContext {
         }
         return attributes.getRequest();
     }
+
+    /**
+     * 현재 요청의 사용자 역할이 required와 일치하는지 검증
+     *
+     * 설계 결정 사항
+     * - 여러 컨트롤러에서 동일한 역할 검증 로직이 반복되는 것을 방지합니다.
+     * - ADMIN 전용 컨트롤러뿐 아니라 HOST 전용, CUSTOMER 전용 엔드포인트에도 재사용 가능합니다.
+     *
+     * @param required 허용할 역할
+     * @throws BusinessException FORBIDDEN(403) - 역할 불일치 시
+     */
+    public static void requireRole(UserRole required) {
+        // getRole()이 내부적으로 헤더 누락 시 401을 던지므로 별도 null 체크 불필요
+        if (getRole() != required) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        }
+    }
 }
