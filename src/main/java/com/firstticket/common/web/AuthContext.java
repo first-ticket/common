@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -29,6 +30,7 @@ public final class AuthContext {
 
     private static final String HEADER_USER_ID   = "X-User-Id";
     private static final String HEADER_USER_ROLE = "X-User-Role";
+    private static final String HEADER_TRACE_ID = "X-Trace-Id";
 
     // 유틸리티 클래스 - 인스턴스 생성 금지
     private AuthContext() {}
@@ -91,6 +93,25 @@ public final class AuthContext {
             throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         }
         return attributes.getRequest();
+    }
+
+    /**
+     * 현재 요청에 포함된 X-Trace-Id 헤더 값을 반환
+     *
+     * Gateway의 TraceIdFilter가 주입한 값을 읽음
+     * Span이 null인 경우(Gateway 주입 생략) 또는 직접 호출(Gateway 우회) 시 빈 문자열 반환
+     * traceId 부재가 비즈니스 오류가 아니므로 예외 대신 Optional로 반환한다.
+     */
+    public static Optional<String> getTraceId() {
+        if (!(RequestContextHolder.getRequestAttributes()
+            instanceof ServletRequestAttributes attributes)) {
+            return Optional.empty();
+        }
+        String traceId = attributes.getRequest().getHeader(HEADER_TRACE_ID);
+        // 빈 문자열도 "없음"으로 취급
+        return (traceId != null && !traceId.isBlank())
+            ? Optional.of(traceId.trim())
+            : Optional.empty();
     }
 
     /**

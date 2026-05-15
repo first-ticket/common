@@ -16,6 +16,7 @@ public class FeignConfig {
 
     private static final String HEADER_USER_ID = "X-User-Id";
     private static final String HEADER_USER_ROLE = "X-User-Role";
+    private static final String HEADER_TRACE_ID = "X-Trace-Id";
 
     @Bean
     @ConditionalOnMissingBean(ErrorDecoder.class)
@@ -30,6 +31,10 @@ public class FeignConfig {
                 HttpServletRequest request = attributes.getRequest();
                 requestTemplate.header(HEADER_USER_ID, request.getHeader(HEADER_USER_ID));
                 requestTemplate.header(HEADER_USER_ROLE, request.getHeader(HEADER_USER_ROLE));
+                String traceId = request.getHeader(HEADER_TRACE_ID);
+                if (traceId != null && !traceId.isBlank()) {
+                    requestTemplate.header(HEADER_TRACE_ID, traceId);
+                }
             }
         };
     }
